@@ -1,3 +1,7 @@
+DOCUMENTATION
+  - added function prototypes inside the .c file
+  - can move it to a separate .h file
+
 IMPORTANT
 ===
 
