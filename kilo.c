@@ -50,6 +50,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <fcntl.h>
+#include <time.h>
 
 /* Syntax highlight types */
 #define HL_NORMAL 0
@@ -135,6 +136,52 @@ enum KEY_ACTION{
         PAGE_DOWN
 };
 
+/* ============================= Terminal update ============================ */
+
+/* We define a very simple "append buffer" structure, that is an heap
+ * allocated string where we can append to. This is useful in order to
+ * write all the escape sequences in a buffer and flush them to the standard
+ * output in a single call, to avoid flickering effects. */
+struct abuf {
+    char *b;
+    int len;
+};
+
+#define ABUF_INIT {NULL,0}
+
+/* function declarations */ 
+char *editorRowsToString(int *buflen);
+int editorOpen(char *filename);
+int editorRowHasOpenComment(erow *row);
+int is_separator(int c);
+int editorReadKey(int fd);
+int enableRawMode(int fd);
+int editorSyntaxToColor(int hl);
+int getCursorPosition(int ifd, int ofd, int *rows, int *cols);
+int getWindowSize(int ifd, int ofd, int *rows, int *cols);
+int editorSave(void);
+int editorFileWasModified(void);
+void editorDelChar();
+void editorSelectSyntaxHighlight(char *filename);
+void editorFreeRow(erow *row);
+void editorUpdateRow(erow *row);
+void editorUpdateSyntax(erow *row);
+void editorRowAppendString(erow *row, char *s, size_t len);
+void editorRowDelChar(erow *row, int at);
+void editorRowInsertChar(erow *row, int at, int c);
+void editorDelRow(int at);
+void editorInsertRow(int at, char *s, size_t len);
+void editorInsertChar(int c);
+void editorProcessKeypress(int fd);
+void editorFind(int fd);
+void disableRawMode(int fd);
+void editorMoveCursor(int key);
+void abFree(struct abuf *ab);
+void abAppend(struct abuf *ab, const char *s, int len);
+void editorInsertNewline(void);
+void editorAtExit(void);
+void initEditor(void);
+void editorRefreshScreen(void);
 void editorSetStatusMessage(const char *fmt, ...);
 
 /* =========================== Syntax highlights DB =========================
@@ -827,18 +874,7 @@ writeerr:
     return 1;
 }
 
-/* ============================= Terminal update ============================ */
 
-/* We define a very simple "append buffer" structure, that is an heap
- * allocated string where we can append to. This is useful in order to
- * write all the escape sequences in a buffer and flush them to the standard
- * output in a single call, to avoid flickering effects. */
-struct abuf {
-    char *b;
-    int len;
-};
-
-#define ABUF_INIT {NULL,0}
 
 void abAppend(struct abuf *ab, const char *s, int len) {
     char *new = realloc(ab->b,ab->len+len);
